@@ -44,8 +44,16 @@ public Exception(string message, Exception innerException);
 
 ### 异常处理
 #### 局部处理 
-使用try-catch-finally 语句。
+##### 使用try-catch-finally 语句
 
+注意：**如果try作用域包含了异步处理，该异步处理产生的异常不会被捕获**
+常见异步情况有：
+
+- 协程（Coroutines）。 如果想要协程处理异常可以参考 [Catching Exceptions in Coroutines](https://www.jacksondunstan.com/articles/3718)
+- 线程处理
+- 其他延时操作，比如 `InvokeDelayed` 调用
+
+##### ContinueWith
 如果使用了`Task`处理异步任务	，还可以使用 `ContinueWith `获得Task运行期间的Exception，运行线程和Task相同。
 	
 ```
@@ -55,6 +63,8 @@ public Exception(string message, Exception innerException);
                                             t.Exception.InnerException.Message);
                         }, TaskContinuationOptions.OnlyOnFaulted);
 ```
+
+try-catch方法中
 #### 全局处理
 
 Unity 本身提供了`LogCallback `监听程序Log和异常
@@ -81,7 +91,7 @@ Unity 本身提供了`LogCallback `监听程序Log和异常
 
 
 ### Native Crash
-前面我们介绍了Unity Exception，除了Unity托管代码本身产生的异常之外，运行平台也会有对应的异常，平台托管代码中产生的异常我们是Native Crash。
+前面我们介绍了Unity Exception，除了Unity托管代码本身产生的异常之外，运行平台也会有对应的异常，平台托管代码中产生的异常我们是Native Crash，之所以叫Native Crash是因为这些异常错误直接造成App终止运行，也就是我们常说的Crash闪退了。
 当然Native Crash也是跟随平台特性的不同也各有差异，具体到Android平台可以分为 `Java Exception` 和 `Android native crash` 两类，还有iOS平台的 `iOS native crash `
 	
 #### **Android Java Exception**：
@@ -269,7 +279,7 @@ Binary Images:
 - 崩溃发生的堆栈 (位置， 地址， 函数符号+ 偏移量）：  
 >  0   libsystem_kernel.dylib           0x00000001b92c8c04 mach_msg_trap + 8
 
-- Binary Images:  二进制文件内存信息 ( 地址起始-地址结束 名称 CPU架构 <UIID> 路径）
+- Binary Images:  二进制文件内存信息 ( 地址起始-地址结束 名称 CPU架构 **UIID** 路径）
 > 0x100eb0000 - 0x100eb7fff demo arm64  <14cde28b305d3bffb8abdfab5a30df25> /var/containers/Bundle/Application/03D4FE4F-26BC-47E5-A1D9-B8FF1D379B4A/demo.app/demo
 
 更多详情：
@@ -315,11 +325,11 @@ Bugly官方手册 - [Android符号表](https://bugly.qq.com/docs/user-guide/symb
 ## Unity上报平台的选择
 
 ### 主流上报平台的对比分析
-Unity平台的异常上报通常有四家较为主流的平台，
+Unity异常上报通常有四家较为主流的平台，
 
  - [Bugly](https://bugly.qq.com/docs/user-guide/instruction-manual-plugin-unity/?v=20200312155538) 
  - [Appcenter](https://docs.microsoft.com/en-gb/appcenter/sdk/crashes/unity)
- - [Unity](https://unitytech.github.io/clouddiagnostics/) 
+ - [Unity Cloud Diagnostics](https://unitytech.github.io/clouddiagnostics/) 
  - [Firebase](https://firebase.google.com/docs/crashlytics/get-started?authuser=0&platform=unity) 
  
 这里对各个平台的特点梳理了一个表格，集成后可以参阅(标绿的部分是明显优势项，表格中仅拿Android项目进行了测试统计）：
@@ -356,7 +366,7 @@ Android平台也提供了处理Java异常的全局接口 `Thread.UncaughtExcepti
 `Thread.setDefaultUncaughtExceptionHandler` 注册给系统即可。同样iOS平台类似，应为此接口值接受一个Handler，需要先通过 `Thread.getDefaultUncaughtExceptionHandler` 获取之前的Handler，再根据需要将捕获的Exception进行转交。
 
 #### Android Native 异常
-Android 平台可以使用 [google breakpad](https://github.com/google/breakpad) 捕获native crash（TODO: 集成方案：Sentry)， Appcenter平台就是采用的该方案。
+Android 平台可以使用 [google breakpad](https://github.com/google/breakpad) 捕获native crash， Appcenter平台就是采用的该方案。
  
 
 ## 异常处理和上报
@@ -373,6 +383,7 @@ Android 平台可以使用 [google breakpad](https://github.com/google/breakpad)
 - `try`的作用域尽量单一，方便错误定位。
 - `catch`中做恢复资源，如果不能正确处理请上报事件或debug下输出错误，最后或者是重新throw。
 - `finally`中清理资源，可以不`catch` Exception，仅使用try-finally做资源闭环处理。
+
 	
 另外更多使用规则请参阅
  [Best practices for exceptions](https://docs.microsoft.com/en-us/dotnet/standard/exceptions/best-practices-for-exceptions)
@@ -456,4 +467,43 @@ SystemInfo.maxTextureSize,
 - Trace事件：为了方便业务分析，我们在开发过程会上报事件用户埋点分析，除此之外我们可以提供Trace事件类型，主要来统计模块加载和错误输出，发生异常是可以根据场景附加上多个事件集合。
 - 日志文件：在可能的情况下，附加当前应用的日志文件，AppCenter提供了附加文件的接口，我们可以将日志文件一并上传。
 - 反馈接口：用户提供额外的文字描述和截屏。
+
+## 测试题
+1. 关于Unity C# Excepction，下列说法正确的是：
+
+A. Android程序发生了 C# Exception默认情况下会造成Crash闪退。
+
+B. `Fast but no Exceptions` 的意思是运行速度快并且不会产生Crash闪退。
+
+C. 使用 `public Exception(string message, Exception innerException); ` 构造方法可以保留innerException的调用堆栈。
+
+D.  try-catch 不能捕获协程中的异常
+
+答案: CD
+
+2.  Unity LogCallback接口就是日志的回调，可以获得日志，但不能拿到Exception的实例 
+
+答案:  对（只能拿到Exception的message和callstack属性）
+
+3. Native Crash 下列说法错误的是：
+A. Java Excpeption会造成程序终止
+B. 在符号表的前提下， iOS Crash可以获得异常堆栈的行号
+C. 可以使用 `ndk-stack` 和 `atos` 解析 Android native crash
+D. dSYM 是iOS编译过程中生成的符号表文件
+
+答案 ： C
+
+4.  虽然国内的Android产品不能使用 `Firebase` ，但海外的产品都可以使用
+
+答案 错
+
+5 下列说法正确的是：
+
+A. throw 关键字可以单独使用，不用跟随Exception对象。
+B. 可以不适用catch语句，使用try-finally进行及时的资源释放。
+C. 日志文件可以让我们更快的定位Crash原因，各大平台中仅bugly提供Logcat日志获取。
+D. 为了方便定位错误发生位置，应当编写职责单一的方法，方法行数不易过多。
+
+答案 ABCD
+
 
