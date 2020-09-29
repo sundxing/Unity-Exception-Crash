@@ -1,4 +1,4 @@
-#Unity异常处理与分析
+# Unity异常处理与分析
 
 
 ## 引言
@@ -53,7 +53,7 @@ public Exception(string message, Exception innerException);
 - 线程处理
 - 其他延时操作，比如 `InvokeDelayed` 调用
 
-##### ContinueWith
+##### 使用ContinueWith
 如果使用了`Task`处理异步任务	，还可以使用 `ContinueWith `获得Task运行期间的Exception，运行线程和Task相同。
 	
 ```
@@ -64,7 +64,7 @@ public Exception(string message, Exception innerException);
                         }, TaskContinuationOptions.OnlyOnFaulted);
 ```
 
-try-catch方法中
+
 #### 全局处理
 
 Unity 本身提供了`LogCallback `监听程序Log和异常
@@ -87,15 +87,16 @@ Unity 本身提供了`LogCallback `监听程序Log和异常
     Exception,
   }
 ```
-看到`LogType `中有 `Exception `，然后我们通过`Application.logMessageReceivedThreaded`注册接口，就可以获得C#代码中抛出的所有Exception了。
+看到`LogType `中有 `Exception `，然后我们通过`Application.logMessageReceivedThreaded`注册接口，就可以获得C#代码中未被捕获的的所有Exception了，需要注意的是`LogCallback`接口拿不到Exception实例，只有Excetipion信息和调用栈。
 
 
 ### Native Crash
-前面我们介绍了Unity Exception，除了Unity托管代码本身产生的异常之外，运行平台也会有对应的异常，平台托管代码中产生的异常我们是Native Crash，之所以叫Native Crash是因为这些异常错误直接造成App终止运行，也就是我们常说的Crash闪退了。
+前面我们介绍了Unity Exception，除了Unity托管代码本身产生的异常之外，运行平台也会有对应的异常，平台托管代码中产生的异常我们是Native Crash，另外这些异常错误直接造成App终止运行，也就是我们常说的Crash闪退了。
 当然Native Crash也是跟随平台特性的不同也各有差异，具体到Android平台可以分为 `Java Exception` 和 `Android native crash` 两类，还有iOS平台的 `iOS native crash `
 	
 #### **Android Java Exception**：
-发生在Android 虚拟机层面的异常，我们通过Java全局的异常捕获类`Thread.UncaughtExceptionHandler`拿到各个线程抛出的Exception
+发生在Android 虚拟机层面的异常，我们通过Java全局的异常捕获类`Thread.UncaughtExceptionHandler`拿到各个线程抛出的Exception。
+
 例1-Java Exception
 
 ```
@@ -118,6 +119,7 @@ java.lang.ArithmeticException: divide by zero
 
 简单理解Android的native crash就是发生在so库中异常，所以这些异常实际上就是Linux系统
 常见导致Native Crash的原因有以下几种：
+
 1. so库内部代码数组越界、缓冲区溢出、空指针、野指针等；
 2. Android ART发现或出现异常；
 3. 其他framework、Kernel或硬件bug；
@@ -177,6 +179,7 @@ E/CRASH   (32251):         #10  pc 000575c5  /system/lib/libdvm.so
 
 #### **iOS Native Crash**
 
+与Android类似，iOS可以拿到的Crash记录也非常详细
 
 例3-iOS Crash
 
@@ -332,10 +335,10 @@ Unity异常上报通常有四家较为主流的平台，
  - [Unity Cloud Diagnostics](https://unitytech.github.io/clouddiagnostics/) 
  - [Firebase](https://firebase.google.com/docs/crashlytics/get-started?authuser=0&platform=unity) 
  
-这里对各个平台的特点梳理了一个表格，集成后可以参阅(标绿的部分是明显优势项，表格中仅拿Android项目进行了测试统计）：
+这里对各个平台的特点梳理了一个表格，集成后可以参阅(标绿的部分是**明显优势项**，表格中仅拿Android项目进行了测试统计）：
 ![](crash-platform.png)
 
-根据咱们公司风控要求，**Bugly限制国内平台使用**，**Firebase限制全平台使用**，所以产品的集成建议以下组合方式：
+根据咱们公司风控要求，**Bugly仅限于只在国内发行的App使用**，**Firebase当前阶段禁止使用**，因此产品的集成平台是建议选用以下组合：
 > 国内产品推荐：Bugly, Unity
 > 
 > 海外产品推荐：Appcenter, Unity
@@ -497,13 +500,13 @@ D. dSYM 是iOS编译过程中生成的符号表文件
 
 答案 错
 
-5 下列说法正确的是：
+5. 下列说法正确的是：
 
 A. throw 关键字可以单独使用，不用跟随Exception对象。
 B. 可以不适用catch语句，使用try-finally进行及时的资源释放。
 C. 日志文件可以让我们更快的定位Crash原因，各大平台中仅bugly提供Logcat日志获取。
 D. 为了方便定位错误发生位置，应当编写职责单一的方法，方法行数不易过多。
 
-答案 ABCD
+答案: ABCD
 
 
